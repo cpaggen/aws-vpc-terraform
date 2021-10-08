@@ -27,13 +27,16 @@ resource "aws_subnet" "second"{
 
 resource "aws_route_table" "mgmt-rt" {
   vpc_id = aws_vpc.terraformvpc1.id
+  tags = {
+    Name = "cpaggen-rt"
+  }
 }
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.terraformvpc1.id
 
   tags = {
-    Name = "internet"
+    Name = "cpaggen-internet"
   }
 }
 
@@ -73,6 +76,10 @@ resource "aws_security_group" "cpaggen-sg" {
     protocol        = "-1"
     cidr_blocks     = ["0.0.0.0/0"]
   }
+  tags = {
+    Name = "cpaggen-default"
+  }
+
 }
 
 data "aws_ami" "amazon_linux" {
@@ -92,7 +99,20 @@ resource "aws_instance" "ec2_instance_one" {
   key_name               = "virginia-keypair-one"
   vpc_security_group_ids = [aws_security_group.cpaggen-sg.id]
   subnet_id              = aws_subnet.first.id
+  connection {
+      agent       = false
+      host        = self.public_ip
+      private_key = file("virginia-keypair-one.pem")
+      type        = "ssh"
+      user        = "ec2-user"
+    }
 
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum update -y",
+      "sleep 10",
+   ]
+  }
   tags = {
     Terraform   = "true"
     Environment = "dev"
@@ -107,7 +127,21 @@ resource "aws_instance" "ec2_instance_two" {
   key_name               = "virginia-keypair-one"
   vpc_security_group_ids = [aws_security_group.cpaggen-sg.id]
   subnet_id              = aws_subnet.second.id
+  connection {
+      agent       = false
+      host        = self.public_ip
+      private_key = file("virginia-keypair-one.pem")
+      type        = "ssh"
+      user        = "ec2-user"
+    }
 
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum update -y",
+      "sleep 10",
+   ]
+ }
+ 
   tags = {
     Terraform   = "true"
     Environment = "dev"
